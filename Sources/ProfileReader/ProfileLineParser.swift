@@ -18,23 +18,80 @@ enum BazelCacheResult {
     case remote
 }
 
+
+// Implementation of the action exploring state machine
+struct ProfileLineParserState {
+    // Warning! This is just an approximation
+    // If downloading for more than 10 us, the request was most likely taken
+    // from the remote cache
+    static let maxLocalDownloadingDuration = 10
+
+    // TODO: Consider using just name
+    struct SubEvent {
+        var name: String?
+    }
+
+    private(set) var name: String?
+    private(set) var cacheResult: BazelCacheResult = .noncacheable
+    private(set) var startingTimestamp: Int?
+    private(set) var endingTimestamp: Int?
+    private(set) var mnemonic: String?
+    private(set) var subEvents: [SubEvent] = []
+
+    func transform(_ newEvent: RawEvent) -> (Self, BazelAction?) {
+        var newState = self
+
+        if let mnemonic = newEvent.args?["mnemonic"] {
+            if newState.mnemonic != nil {
+                // TODO: report error - duplicated mnemonics
+            }
+            newState.mnemonic = mnemonic
+            newState.name = newEvent.name
+        }
+        if let eventStart = newEvent.ts {
+            newState.startingTimestamp = min(newState.startingTimestamp ?? .max, eventStart)
+            if let eventDuration = newEvent.dur {
+                newState.endingTimestamp = max(newState.endingTimestamp ?? .min, eventStart + eventDuration)
+            }
+        }
+        newState.subEvents.append(SubEvent(name: newEvent.name))
+
+        var foundAction: BazelAction? = nil
+        switch newEvent.name {
+        case "action.prepare":
+            // starting a new event
+            newState = Self()
+        case "check cache hit":
+            // this is cacheable
+            newState.cacheResult = .miss
+        case "download outputs":
+            newState.cacheResult = .local
+        case "Remote.download":
+            guard let durationMicro = newEvent.dur else {
+                //invalid format
+                // TODO: report error
+                break
+            }
+            let isDownloadingFromRemote = durationMicro > ProfileLineParserState.maxLocalDownloadingDuration
+            newState.cacheResult = isDownloadingFromRemote ? .remote : .local
+        case "postprocessing.run":
+            // wrapping the entire
+            foundAction = BazelAction.from(newState)
+            newState = ProfileLineParserState()
+        default:
+            break
+        }
+
+        return (newState, foundAction)
+    }
+}
+
 // Machine state for parsing all events and generating a set of Actions
 public final class ProfileLineParser: ProfileLineConsumer {
 
-    // internal implementation of the current action exploring
-    struct State {
-        var name: String?
-        var cacheResult: BazelCacheResult?
-
-        func transform(_ newEvent: RawEvent) -> State {
-            // TODO: implement the state machine
-            return self
-        }
-    }
-
     private(set) var profileContext: BazelContext?
     private(set) var actions: [BazelAction] = []
-    private(set) var state: State = State()
+    private(set) var state: ProfileLineParserState = ProfileLineParserState()
     private let decoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom({ (d: any Decoder) in
@@ -66,7 +123,11 @@ public final class ProfileLineParser: ProfileLineConsumer {
         do {
             // majority of jsons will be events, so optimistically trying first that format
             let event = try decoder.decode(RawEvent.self, from: jsonString.data(using: .utf8)!)
-            state = state.transform(event)
+            let (newState, newAction) = state.transform(event)
+            state = newState
+            if let action = newAction {
+                actions.append(action)
+            }
         } catch {
             let preamble = try decoder.decode(RawPreamble.self, from: jsonString.data(using: .utf8)!)
             profileContext = try BazelContext.build(from: preamble)

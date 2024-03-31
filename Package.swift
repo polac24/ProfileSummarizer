@@ -17,12 +17,13 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "ProfileSummarizer"),
-//        .testTarget(
-//            name: "ProfileSummarizerTests",
-//            dependencies: ["ProfileSummarizer"]),
-        .target(name: "ProfileReader"),
+        //        .testTarget(
+        //            name: "ProfileSummarizerTests",
+        //            dependencies: ["ProfileSummarizer"]),
+            .target(name: "ProfileReader"),
         .testTarget(
             name: "ProfileReaderTests",
-            dependencies: ["ProfileReader"])
+            dependencies: ["ProfileReader"],
+            resources: [.copy("TestData")])
     ]
 )

@@ -10,15 +10,22 @@ import XCTest
 
 final class ProfileLineParserTests: XCTestCase {
 
+
     func testE2E() async throws {
         let parser = ProfileLineParser()
-        let fileURL = URL(fileURLWithPath: "/private/var/tmp/_bazel_bartosz/profiles/uploaded/index-build-profile-02F1803F-03CA-4ECE-9618-9D92A960EFC2.raw.json")
+        let filesDir = try XCTUnwrap(Bundle.module.url(
+            forResource: "TestData",
+            withExtension: ""
+        ))
+        let fileURL = filesDir.appendingPathComponent("extended").appendingPathExtension("json")
         let fileProvider = JsonFileContentProvider(file: fileURL)
         let reader = FullProfileFileReader(fileProvider: fileProvider)
         for await line in reader.read() {
             parser.observed(newLine: line)
         }
-        print(parser.profileContext)
+        // TODO: implement real tests
+        XCTAssertNotNil(parser.profileContext)
+        XCTAssertFalse(parser.actions.isEmpty)
     }
 
 }
