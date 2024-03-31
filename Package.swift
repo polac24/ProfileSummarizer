@@ -12,6 +12,8 @@ let package = Package(
             name: "ProfileSummarizer",
             targets: ["ProfileSummarizer"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/1024jp/GzipSwift", from: Version(6, 0, 0))],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
@@ -20,7 +22,7 @@ let package = Package(
         //        .testTarget(
         //            name: "ProfileSummarizerTests",
         //            dependencies: ["ProfileSummarizer"]),
-            .target(name: "ProfileReader"),
+            .target(name: "ProfileReader", dependencies: [.product(name: "Gzip", package: "GzipSwift")]),
         .testTarget(
             name: "ProfileReaderTests",
             dependencies: ["ProfileReader"],

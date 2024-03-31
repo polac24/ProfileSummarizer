@@ -20,7 +20,16 @@ class ProfileExplorer {
     init(path: String, mode: ProfileExplorerMode) {
         let fileURL = URL(fileURLWithPath: path)
         self.fileURL = fileURL
-        let fileProvider = JsonFileContentProvider(file: fileURL)
+        let fileProvider: FileContentProvider
+        switch fileURL.pathExtension {
+        case "gz":
+            fileProvider = GzipFileContentProvider(file: fileURL)
+        case "json":
+            fileProvider = JsonFileContentProvider(file: fileURL)
+        default:
+            // unknown format - defaulting to json
+            fileProvider = JsonFileContentProvider(file: fileURL)
+        }
         self.profileReader = FullProfileFileReader(fileProvider: fileProvider)
         
     }
