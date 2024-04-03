@@ -23,6 +23,7 @@ final class ProfileLineParserTests: XCTestCase {
         for await line in reader.read() {
             parser.observed(newLine: line)
         }
+        XCTAssertEqual(parser.profileContext?.date, Date(timeIntervalSince1970: 1711736269.318))
         // TODO: implement real tests
         XCTAssertNotNil(parser.profileContext)
         XCTAssertFalse(parser.actions.isEmpty)

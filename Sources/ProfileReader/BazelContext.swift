@@ -15,6 +15,6 @@ struct BazelContext {
 
 extension BazelContext {
     static func build(from preamble: RawPreamble) throws -> Self {
-        return BazelContext(uuid: UUID(), date: Date())//preamble.otherData.date)
+        return BazelContext(uuid: UUID(), date: preamble.otherData.date)
     }
 }

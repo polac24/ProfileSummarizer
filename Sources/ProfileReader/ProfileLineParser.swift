@@ -7,6 +7,10 @@
 
 import Foundation
 
+enum ProfileLineParserError: Error {
+    case invalidDateString(dateString: String)
+}
+
 enum BazelCacheResult {
     // when the action was cacheable, but had a cache miss
     case miss
@@ -17,7 +21,6 @@ enum BazelCacheResult {
     // cache hit from remote
     case remote
 }
-
 
 // Implementation of the action exploring state machine
 struct ProfileLineParserState {
@@ -92,12 +95,23 @@ public final class ProfileLineParser: ProfileLineConsumer {
     private(set) var profileContext: BazelContext?
     private(set) var actions: [BazelAction] = []
     private(set) var state: ProfileLineParserState = ProfileLineParserState()
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZ"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
     private let decoder = {
         let decoder = JSONDecoder()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZ"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         decoder.dateDecodingStrategy = .custom({ (d: any Decoder) in
             let dateString = try d.singleValueContainer().decode(String.self)
-            // TODO: implement reading from dateString
-            return Date()
+            guard let date = formatter.date(from: dateString) else {
+                throw ProfileLineParserError.invalidDateString(dateString: dateString)
+            }
+            return date
         })
         return decoder
     }()
