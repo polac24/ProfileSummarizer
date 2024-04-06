@@ -42,7 +42,21 @@ extension BazelAction {
     }
 
     private static func extractBazelTargetFrom(actionName: String) -> String? {
-        // TODO: implement
+        do {
+            if #available(macOS 13.0, *) {
+                let regex = try Regex("(@\\w+)?\\/\\/([^: ]+)(:(\\w+))?")
+                guard let matchString = try regex.firstMatch(in: actionName)?.output[0].value as? Substring else {
+                    return nil
+                }
+                return String(matchString)
+            } else {
+
+                // TODO: Fallback on earlier versions
+            }
+        } catch {
+            print("error: \(error)")
+            return nil
+        }
         return nil
     }
 }
