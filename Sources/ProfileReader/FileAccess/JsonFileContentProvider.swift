@@ -9,6 +9,22 @@ import Foundation
 
 // Reading the not compressed raw profile in the json format
 class JsonFileContentProvider: FileContentProvider {
+    var supportsAsync: Bool = true
+
+    func getContentAsync() throws -> AsyncStream<String> {
+        let observer = try FileObserver(url: file)
+        return AsyncStream<String>{ continuation in
+            do {
+                try observer.start { input in
+                    continuation.yield(input)
+                }
+            } catch {
+                // finishes only on error
+                continuation.finish()
+            }
+        }
+    }
+
 
     let file: URL
     init(file: URL) {

@@ -13,6 +13,8 @@ enum FileContentProviderError: Error {
 
 // Reads the underlying file and generates the readable format
 protocol FileContentProvider {
-    // TODO: consider async
+    // true when the async mode is supported
+    var supportsAsync: Bool { get }
     func getContent() throws -> String
+    func getContentAsync() throws -> AsyncStream<String>
 }

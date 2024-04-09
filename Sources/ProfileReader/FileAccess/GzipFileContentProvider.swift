@@ -10,6 +10,12 @@ import Gzip
 
 // Reading the not compressed raw profile in the json format
 class GzipFileContentProvider: FileContentProvider {
+    var supportsAsync: Bool = false
+
+    func getContentAsync() throws -> AsyncStream<String> {
+        fatalError("Gzip doesn't support partial progress")
+    }
+
 
     let file: URL
     init(file: URL) {
