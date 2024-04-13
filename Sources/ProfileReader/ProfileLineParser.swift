@@ -22,6 +22,15 @@ enum BazelCacheResult {
     case remote
 }
 
+enum LogLevel: Int, Comparable {
+    static func < (lhs: LogLevel, rhs: LogLevel) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+
+    case standard = 0
+    case debug
+}
+
 // Implementation of the action exploring state machine
 struct ProfileLineParserState {
     // Warning! This is just an approximation
@@ -92,6 +101,7 @@ struct ProfileLineParserState {
 // Machine state for parsing all events and generating a set of Actions
 public final class ProfileLineParser: ProfileLineConsumer {
 
+    private let logLevel = LogLevel.standard
     private(set) var profileContext: BazelContext?
     private(set) var actions: [BazelAction] = []
     private(set) var state: ProfileLineParserState = ProfileLineParserState()
@@ -128,7 +138,10 @@ public final class ProfileLineParser: ProfileLineConsumer {
         do {
             try consume(jsonString: jsonLine)
         } catch {
-            print("Failed to parse event of preamble: \(newLine), reduced to \(strippedJsonString). Error: \(error)")
+            // TODO: parse different type of events, like memory
+            if logLevel > LogLevel.debug {
+                print("Failed to parse event of an event: \(newLine), reduced to \(strippedJsonString). Error: \(error)")
+            }
             errors.append(error)
         }
     }
