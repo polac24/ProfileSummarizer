@@ -42,6 +42,20 @@ class FileObserverTests: XCTestCase {
         XCTAssertNil(weakObserver)
     }
 
+    func testDoesntKeepStrongReferenceAfterRestartingAndStopping() throws {
+        let url = try XCTUnwrap(workingDirectory?.appendingPathComponent(#function))
+        try "".write(to: url, atomically: true, encoding: .utf8)
+        var observer: Optional = try FileObserver(url: url)
+        try observer?.start {_ in }
+        try DispatchQueue.global(qos: .userInteractive).sync {
+            try "Overwritten".write(to: url, atomically: true, encoding: .utf8)
+        }
+        weak var weakObserver = observer
+        XCTAssertNotNil(weakObserver)
+        observer = nil
+        XCTAssertNil(weakObserver)
+    }
+
     func testDoesntKeepStrongReferenceBeforeStarting() throws {
         let url = try XCTUnwrap(workingDirectory?.appendingPathComponent(#function))
         try "".write(to: url, atomically: true, encoding: .utf8)
@@ -101,6 +115,26 @@ class FileObserverTests: XCTestCase {
         let observer = try FileObserver(url: url)
         try observer.start { dataString in
             readExpectation.fulfill()
+        }
+        waitForExpectations(timeout: 0.1)
+    }
+
+
+    func testCallsOnWrite() throws {
+        let url = try XCTUnwrap(workingDirectory?.appendingPathComponent(#function))
+        try "Initial".write(to: url, atomically: true, encoding: .utf8)
+        let readExpectation = expectation(description: "Wrote data")
+        var readStrings: String = ""
+        let expectedFinalString = "InitialOverwritten"
+        let observer = try FileObserver(url: url)
+        try observer.start { dataString in
+            readStrings.append(dataString)
+            if readStrings == expectedFinalString && !dataString.isEmpty{
+                readExpectation.fulfill()
+            }
+        }
+        Task {
+            try "Overwritten".write(to: url, atomically: true, encoding: .utf8)
         }
         waitForExpectations(timeout: 0.1)
     }

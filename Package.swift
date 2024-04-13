@@ -5,9 +5,8 @@ import PackageDescription
 
 let package = Package(
     name: "ProfileSummarizer",
-    platforms: [.macOS(.v10_15)],
+    platforms: [.macOS(.v13)],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "ProfileSummarizer",
             targets: ["ProfileSummarizer"]),
@@ -15,8 +14,6 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/1024jp/GzipSwift", from: Version(6, 0, 0))],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "ProfileSummarizer"),
         //        .testTarget(

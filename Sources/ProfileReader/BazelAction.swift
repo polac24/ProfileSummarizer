@@ -43,19 +43,13 @@ extension BazelAction {
 
     private static func extractBazelTargetFrom(actionName: String) -> String? {
         do {
-            if #available(macOS 13.0, *) {
-                let regex = try Regex("(@\\w+)?\\/\\/([^: ]+)(:(\\w+))?")
-                guard let matchString = try regex.firstMatch(in: actionName)?.output[0].value as? Substring else {
-                    return nil
-                }
-                return String(matchString)
-            } else {
-
-                // TODO: Fallback on earlier versions
+            let regex = #/(@\w+)?//([^: ]+)(:(\w+))?/#
+            guard let matchString = try regex.firstMatch(in: actionName)?.output.0 else {
+                return nil
             }
+            return String(matchString)
         } catch {
             print("error: \(error)")
-            return nil
         }
         return nil
     }

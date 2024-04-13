@@ -19,6 +19,8 @@ final class FileObserver {
     private var source: DispatchSourceFileSystemObject?
     private let events: DispatchSource.FileSystemEvent
     private let queue: DispatchQueue
+    // Keep dirObserver to support writing to a file (not expanding)
+    private let dirObserver: DirObserver
 
     init(url: URL,
          events: DispatchSource.FileSystemEvent = defaultEvents,
@@ -27,6 +29,12 @@ final class FileObserver {
         self.url = url
         self.events = events
         self.queue = queue
+        try dirObserver = DirObserver(
+            dirURL: url.deletingLastPathComponent(), 
+            observationFileURL: url,
+            events: [.write],
+            queue: queue
+        )
     }
 
     // Warning: this function is not thread safe
@@ -34,13 +42,38 @@ final class FileObserver {
         guard source == nil else {
             throw FileObserverError.alreadyStarted
         }
+
+        self.source = try setupSource(for: action)
+        try dirObserver.start { [weak self] oldState, newState in
+            // a new write has happened
+
+
+            // restart the observation as a file hander needs to be assigned
+            self?.source?.cancel()
+            do {
+                self?.source = try self?.setupSource(for: action)
+            } catch {
+                print("error: restarting new file observation after a write has failed: \(error)")
+            }
+        }
+    }
+
+    deinit {
+        guard let source = source else {
+           return
+        }
+        source.cancel()
+    }
+
+    private func setupSource(for action: @escaping (String) -> ()) throws -> DispatchSourceFileSystemObject? {
+        // TODO: check for already started
+
         let fileHandle = try FileHandle(forReadingFrom: url)
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fileHandle.fileDescriptor,
             eventMask: events,
             queue: queue
         )
-
         // call with the initial data first
         if let initialData = process(fileHandle: fileHandle, event: .write), !initialData.isEmpty {
             queue.async {
@@ -57,14 +90,7 @@ final class FileObserver {
             try? fileHandle.close()
         }
         source.resume()
-        self.source = source
-    }
-
-    deinit {
-        guard let source = source else {
-           return
-        }
-        source.cancel()
+        return source
     }
 
     // process writing events and extracts associated data wrote to the file
