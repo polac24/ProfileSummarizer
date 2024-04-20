@@ -11,8 +11,19 @@ enum FileObserverError: Error {
     case alreadyStarted
 }
 
-// This class is not thread safe
-final class FileObserver {
+enum FileObserverEvent {
+    case start
+    case line(String)
+    case finish
+}
+
+protocol FileObserver {
+    func start(action: @escaping (FileObserverEvent) -> ()) throws
+}
+
+// Observes files changes in the append and write mode
+// Warning! This class is not thread safe
+final class CompleteFileObserver: FileObserver {
     static let defaultQueue = DispatchQueue(label: "FileObserverDefaultQueue")
     static let defaultEvents: DispatchSource.FileSystemEvent = [.extend, .write]
     let url: URL
@@ -24,7 +35,7 @@ final class FileObserver {
 
     init(url: URL,
          events: DispatchSource.FileSystemEvent = defaultEvents,
-         queue: DispatchQueue = FileObserver.defaultQueue
+         queue: DispatchQueue = CompleteFileObserver.defaultQueue
     ) throws {
         self.url = url
         self.events = events
@@ -38,7 +49,7 @@ final class FileObserver {
     }
 
     // Warning: this function is not thread safe
-    func start(action: @escaping (String) -> ()) throws {
+    func start(action: @escaping (FileObserverEvent) -> ()) throws {
         guard source == nil else {
             throw FileObserverError.alreadyStarted
         }
@@ -65,7 +76,7 @@ final class FileObserver {
         source.cancel()
     }
 
-    private func setupSource(for action: @escaping (String) -> ()) throws -> DispatchSourceFileSystemObject? {
+    private func setupSource(for action: @escaping (FileObserverEvent) -> ()) throws -> DispatchSourceFileSystemObject? {
         // TODO: check for already started
 
         let fileHandle = try FileHandle(forReadingFrom: url)
@@ -77,13 +88,13 @@ final class FileObserver {
         // call with the initial data first
         if let initialData = process(fileHandle: fileHandle, event: .write), !initialData.isEmpty {
             queue.async {
-                action(initialData)
+                action(.line(initialData))
             }
         }
         source.setEventHandler { [weak self] in
             let event = source.data
             if let read = self?.process(fileHandle: fileHandle, event: event) {
-                action(read)
+                action(.line(read))
             }
         }
         source.setCancelHandler {

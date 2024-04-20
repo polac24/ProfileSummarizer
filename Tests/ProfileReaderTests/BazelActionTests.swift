@@ -19,7 +19,7 @@ final class BazelActionTests: XCTestCase {
         XCTAssertEqual(BazelAction.from(state)?.target, "@rule_name//generator/Module:Target")
     }
 
-    func testExtractsBazelDefaulktModuleTarget() {
+    func testExtractsBazelDefaultModuleTarget() {
         let state = buildParserStateWith(actionName: "Creating source manifest for @rule_name//generator/Module")
         XCTAssertEqual(BazelAction.from(state)?.target, "@rule_name//generator/Module")
     }

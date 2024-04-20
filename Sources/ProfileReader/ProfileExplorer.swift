@@ -16,8 +16,9 @@ enum ProfileExplorerMode {
 class ProfileExplorer {
     private let fileURL: URL
     private let profileReader: ProfileFileReader
+    private let parser: ProfileLineConsumer
 
-    init(path: String, mode: ProfileExplorerMode) {
+    init(path: String, mode: ProfileExplorerMode, parser: ProfileLineConsumer) {
         let fileURL = URL(fileURLWithPath: path)
         self.fileURL = fileURL
         let fileProvider: FileContentProvider
@@ -31,6 +32,15 @@ class ProfileExplorer {
             fileProvider = JsonFileContentProvider(file: fileURL)
         }
         self.profileReader = FullProfileFileReader(fileProvider: fileProvider)
-        
+        self.parser = parser
+    }
+
+    // It reading a single profile
+    func start() {
+        let startedTask = Task {
+            for await line in profileReader.read() {
+                parser.observed(newLine: line)
+            }
+        }
     }
 }

@@ -34,7 +34,7 @@ class FileObserverTests: XCTestCase {
     func testDoesntKeepStrongReferenceAfterStarting() throws {
         let url = try XCTUnwrap(workingDirectory?.appendingPathComponent(#function))
         try "".write(to: url, atomically: true, encoding: .utf8)
-        var observer: Optional = try FileObserver(url: url)
+        var observer: Optional = try CompleteFileObserver(url: url)
         try observer?.start {_ in }
         weak var weakObserver = observer
         XCTAssertNotNil(weakObserver)
@@ -45,7 +45,7 @@ class FileObserverTests: XCTestCase {
     func testDoesntKeepStrongReferenceAfterRestartingAndStopping() throws {
         let url = try XCTUnwrap(workingDirectory?.appendingPathComponent(#function))
         try "".write(to: url, atomically: true, encoding: .utf8)
-        var observer: Optional = try FileObserver(url: url)
+        var observer: Optional = try CompleteFileObserver(url: url)
         try observer?.start {_ in }
         try DispatchQueue.global(qos: .userInteractive).sync {
             try "Overwritten".write(to: url, atomically: true, encoding: .utf8)
@@ -59,7 +59,7 @@ class FileObserverTests: XCTestCase {
     func testDoesntKeepStrongReferenceBeforeStarting() throws {
         let url = try XCTUnwrap(workingDirectory?.appendingPathComponent(#function))
         try "".write(to: url, atomically: true, encoding: .utf8)
-        var observer: Optional = try FileObserver(url: url)
+        var observer: Optional = try CompleteFileObserver(url: url)
         weak var weakObserver = observer
         XCTAssertNotNil(weakObserver)
         observer = nil
@@ -72,8 +72,11 @@ class FileObserverTests: XCTestCase {
         let readExpectation = expectation(description: "Wrote data")
         var readStrings: String = ""
         let expectedFinalString = "Initialfirst data\ndelayed data\n"
-        let observer = try FileObserver(url: url)
-        try observer.start { dataString in
+        let observer = try CompleteFileObserver(url: url)
+        try observer.start { event in
+            guard case let .line(dataString) = event else {
+                return
+            }
             readStrings.append(dataString)
             if readStrings == expectedFinalString && !dataString.isEmpty{
                 readExpectation.fulfill()
@@ -96,8 +99,11 @@ class FileObserverTests: XCTestCase {
         let readExpectation = expectation(description: "Wrote data")
         var readStrings: String = ""
         let expectedFinalString = "Initial"
-        let observer = try FileObserver(url: url)
-        try observer.start { dataString in
+        let observer = try CompleteFileObserver(url: url)
+        try observer.start  { event in
+            guard case let .line(dataString) = event else {
+                return
+            }
             readStrings.append(dataString)
             if readStrings == expectedFinalString && !dataString.isEmpty{
                 readExpectation.fulfill()
@@ -112,7 +118,7 @@ class FileObserverTests: XCTestCase {
         let readExpectation = expectation(description: "Read data")
         readExpectation.isInverted = true
 
-        let observer = try FileObserver(url: url)
+        let observer = try CompleteFileObserver(url: url)
         try observer.start { dataString in
             readExpectation.fulfill()
         }
@@ -126,8 +132,11 @@ class FileObserverTests: XCTestCase {
         let readExpectation = expectation(description: "Wrote data")
         var readStrings: String = ""
         let expectedFinalString = "InitialOverwritten"
-        let observer = try FileObserver(url: url)
-        try observer.start { dataString in
+        let observer = try CompleteFileObserver(url: url)
+        try observer.start  { event in
+            guard case let .line(dataString) = event else {
+                return
+            }
             readStrings.append(dataString)
             if readStrings == expectedFinalString && !dataString.isEmpty{
                 readExpectation.fulfill()

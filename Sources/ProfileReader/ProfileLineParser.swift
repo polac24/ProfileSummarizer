@@ -99,7 +99,7 @@ struct ProfileLineParserState {
 }
 
 // Machine state for parsing all events and generating a set of Actions
-public final class ProfileLineParser: ProfileLineConsumer {
+public final class ProfileLineParser: ProfileLineConsumer, ProfileStateProvider {
 
     private let logLevel = LogLevel.standard
     private(set) var profileContext: BazelContext?

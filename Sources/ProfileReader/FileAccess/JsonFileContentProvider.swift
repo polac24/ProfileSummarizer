@@ -12,11 +12,18 @@ class JsonFileContentProvider: FileContentProvider {
     var supportsAsync: Bool = true
 
     func getContentAsync() throws -> AsyncStream<String> {
-        let observer = try FileObserver(url: file)
+        let observer = try CompleteFileObserver(url: file)
         return AsyncStream<String>{ continuation in
             do {
-                try observer.start { input in
-                    continuation.yield(input)
+                try observer.start { event in
+                    switch event {
+                    case .line(let input):
+                        continuation.yield(input)
+                    case .start:
+                        continuation.finish()
+                    case .finish:
+                        continuation.finish()
+                    }
                 }
             } catch {
                 // finishes only on error
