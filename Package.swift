@@ -8,14 +8,15 @@ let package = Package(
     platforms: [.macOS(.v13)],
     products: [
         .library(
-            name: "ProfileSummarizer",
-            targets: ["ProfileSummarizer"]),
+            name: "ProfileReader",
+            targets: ["ProfileReader"]),
+        .executable(name: "ProfileSummarizerCLI", targets: ["ProfileSummarizer"])
     ],
     dependencies: [
         .package(url: "https://github.com/1024jp/GzipSwift", from: Version(6, 0, 0))],
     targets: [
         .target(
-            name: "ProfileSummarizer"),
+            name: "ProfileSummarizer", dependencies: ["ProfileReader"]),
         //        .testTarget(
         //            name: "ProfileSummarizerTests",
         //            dependencies: ["ProfileSummarizer"]),

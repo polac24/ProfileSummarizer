@@ -8,7 +8,7 @@
 import Foundation
 
 
-protocol ProfileStateProvider {
+public protocol ProfileStateProvider {
     var profileContext: BazelContext? { get }
     var state: ProfileLineParserState { get }
 }

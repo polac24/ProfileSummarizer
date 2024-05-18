@@ -7,8 +7,12 @@
 
 import Foundation
 
+public struct ProfileContext: Equatable {
+    var profileContext: BazelContext?
+    var state: ProfileLineParserState
+}
 
-protocol ProfileLineConsumer {
+public protocol ProfileLineConsumer {
     // Called whenever a new line has been read from the profile
-    func observed(newLine: String)
+    func observed(newLine: String) -> ProfileContext
 }

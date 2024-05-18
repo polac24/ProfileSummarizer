@@ -8,7 +8,7 @@
 import Foundation
 
 // Invocation details - available in the first line of the profile
-struct BazelContext: Equatable {
+public struct BazelContext: Equatable {
     let uuid: UUID
     let date: Date
 }

@@ -11,7 +11,7 @@ enum ProfileLineParserError: Error {
     case invalidDateString(dateString: String)
 }
 
-enum BazelCacheResult {
+enum BazelCacheResult: Equatable {
     // when the action was cacheable, but had a cache miss
     case miss
     // an action had disabled cacheable
@@ -32,14 +32,14 @@ enum LogLevel: Int, Comparable {
 }
 
 // Implementation of the action exploring state machine
-struct ProfileLineParserState {
+public struct ProfileLineParserState: Equatable {
     // Warning! This is just an approximation
     // If downloading for more than 10 us, the request was most likely taken
     // from the remote cache
     static let maxLocalDownloadingDuration = 10
 
     // TODO: Consider using just name
-    struct SubEvent {
+    struct SubEvent: Equatable {
         var name: String?
     }
 
@@ -102,9 +102,11 @@ struct ProfileLineParserState {
 public final class ProfileLineParser: ProfileLineConsumer, ProfileStateProvider {
 
     private let logLevel = LogLevel.standard
-    private(set) var profileContext: BazelContext?
+    // TODO: making public to meed protocol requirement
+    public var profileContext: BazelContext?
     private(set) var actions: [BazelAction] = []
-    private(set) var state: ProfileLineParserState = ProfileLineParserState()
+    // TODO: making public to meed protocol requirement
+    public var state: ProfileLineParserState = ProfileLineParserState()
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZ"
@@ -127,13 +129,15 @@ public final class ProfileLineParser: ProfileLineConsumer, ProfileStateProvider 
     }()
     private (set) var errors: [Error] = []
 
-    func observed(newLine: String) {
+    public init(){}
+
+    public func observed(newLine: String) -> ProfileContext {
         guard let jsonLine = extractJsonObject(rawLine: newLine) else {
-            return
+            return ProfileContext(profileContext: profileContext, state: state)
         }
         let strippedJsonString = jsonLine.trimmingCharacters(in: .whitespaces)
         guard !strippedJsonString.isEmpty else {
-            return
+            return ProfileContext(profileContext: profileContext, state: state)
         }
         do {
             try consume(jsonString: jsonLine)
@@ -144,6 +148,7 @@ public final class ProfileLineParser: ProfileLineConsumer, ProfileStateProvider 
             }
             errors.append(error)
         }
+        return ProfileContext(profileContext: profileContext, state: state)
     }
 
     private func consume(jsonString: any StringProtocol) throws {

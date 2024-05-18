@@ -7,18 +7,19 @@
 
 import Foundation
 
-enum ProfileExplorerMode {
+public enum ProfileExplorerMode {
     // Reading a single profile that is already fully generated
     case fullFile(path: String)
 }
 
 // The main class responsible to read the profile and parse it to the internal model
-class ProfileExplorer {
+public class ProfileExplorer {
+    public typealias Parser = ProfileLineConsumer & ProfileStateProvider
     private let fileURL: URL
     private let profileReader: ProfileFileReader
-    private let parser: ProfileLineConsumer
+    private let parser: Parser
 
-    init(path: String, mode: ProfileExplorerMode, parser: ProfileLineConsumer) {
+    public init(path: String, mode: ProfileExplorerMode, parser: Parser) {
         let fileURL = URL(fileURLWithPath: path)
         self.fileURL = fileURL
         let fileProvider: FileContentProvider
@@ -36,10 +37,14 @@ class ProfileExplorer {
     }
 
     // It reading a single profile
-    func start() {
-        let startedTask = Task {
-            for await line in profileReader.read() {
-                parser.observed(newLine: line)
+    public func start() -> AsyncStream<ProfileContext> {
+        return AsyncStream { continuation in
+            Task {
+                for await line in profileReader.read() {
+                    let newContext = parser.observed(newLine: line)
+                    continuation.yield(newContext)
+                }
+                continuation.finish()
             }
         }
     }
