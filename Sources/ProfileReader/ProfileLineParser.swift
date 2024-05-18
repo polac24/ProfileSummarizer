@@ -7,11 +7,11 @@
 
 import Foundation
 
-enum ProfileLineParserError: Error {
+public enum ProfileLineParserError: Error {
     case invalidDateString(dateString: String)
 }
 
-enum BazelCacheResult: Equatable {
+public enum BazelCacheResult: Equatable {
     // when the action was cacheable, but had a cache miss
     case miss
     // an action had disabled cacheable
@@ -99,14 +99,12 @@ public struct ProfileLineParserState: Equatable {
 }
 
 // Machine state for parsing all events and generating a set of Actions
-public final class ProfileLineParser: ProfileLineConsumer, ProfileStateProvider {
+public final class ProfileLineParser: ProfileLineConsumer {
 
     private let logLevel = LogLevel.standard
-    // TODO: making public to meed protocol requirement
-    public var profileContext: BazelContext?
+    private(set) var profileContext: BazelContext?
     private(set) var actions: [BazelAction] = []
-    // TODO: making public to meed protocol requirement
-    public var state: ProfileLineParserState = ProfileLineParserState()
+    private(set) var state: ProfileLineParserState = ProfileLineParserState()
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZ"
@@ -133,11 +131,11 @@ public final class ProfileLineParser: ProfileLineConsumer, ProfileStateProvider 
 
     public func observed(newLine: String) -> ProfileContext {
         guard let jsonLine = extractJsonObject(rawLine: newLine) else {
-            return ProfileContext(profileContext: profileContext, state: state)
+            return ProfileContext(profileContext: profileContext, state: state, actions: actions)
         }
         let strippedJsonString = jsonLine.trimmingCharacters(in: .whitespaces)
         guard !strippedJsonString.isEmpty else {
-            return ProfileContext(profileContext: profileContext, state: state)
+            return ProfileContext(profileContext: profileContext, state: state, actions: actions)
         }
         do {
             try consume(jsonString: jsonLine)
@@ -148,7 +146,7 @@ public final class ProfileLineParser: ProfileLineConsumer, ProfileStateProvider 
             }
             errors.append(error)
         }
-        return ProfileContext(profileContext: profileContext, state: state)
+        return ProfileContext(profileContext: profileContext, state: state, actions: actions)
     }
 
     private func consume(jsonString: any StringProtocol) throws {

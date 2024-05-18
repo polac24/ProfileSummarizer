@@ -8,8 +8,9 @@
 import Foundation
 
 public struct ProfileContext: Equatable {
-    var profileContext: BazelContext?
-    var state: ProfileLineParserState
+    public var profileContext: BazelContext?
+    public var state: ProfileLineParserState
+    public let actions: [BazelAction]
 }
 
 public protocol ProfileLineConsumer {

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct BazelAction {
+public struct BazelAction: Equatable {
     let name: String
     let target: String?
     let cacheResult: BazelCacheResult

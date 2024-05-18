@@ -14,7 +14,7 @@ public enum ProfileExplorerMode {
 
 // The main class responsible to read the profile and parse it to the internal model
 public class ProfileExplorer {
-    public typealias Parser = ProfileLineConsumer & ProfileStateProvider
+    public typealias Parser = ProfileLineConsumer
     private let fileURL: URL
     private let profileReader: ProfileFileReader
     private let parser: Parser
