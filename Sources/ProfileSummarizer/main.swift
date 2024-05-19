@@ -12,7 +12,15 @@ guard let inputFile = ProcessInfo.processInfo.arguments.dropFirst().first else {
 
 let parser = ProfileLineParser()
 let exporter = ProfileExplorer(path: inputFile, mode: .fullFile(path: inputFile), parser: parser)
-let semphore = DispatchSemaphore(value: 0)
+let actionsFilter: BazelActionFilter = BazelActionFilterComposition(filters: [BazelActionFilterConfiguration.mode([.nonCacheable, .localCache])])
+let actionSerializer: any ActionSerializer = OutputActionSerializer()
+let actionPrinterBazelActionVisitor = ActionPrinterBazelActionVisitor(
+    serializer: actionSerializer,
+    filter: actionsFilter
+    )
+
+// wait for the stream to finish
+let semaphore = DispatchSemaphore(value: 0)
 Task {
     let stream = exporter.startOnBazelAction()
     for try await contextErased in stream {
@@ -20,12 +28,17 @@ Task {
         guard let context = contextErased as? ProfileContext else {
             continue
         }
-        print(context.actions.last!)
+        // all new actions are attached as the last one
+        // TODO: make better abstraction than the last
+        guard let newAction = context.actions.last else {
+            continue
+        }
+        actionPrinterBazelActionVisitor.visit(newAction)
     }
-    semphore.signal()
+    semaphore.signal()
 }
 
-semphore.wait()
+semaphore.wait()
 
 
 

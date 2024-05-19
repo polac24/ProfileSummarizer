@@ -8,12 +8,12 @@
 import Foundation
 
 public struct BazelAction: Equatable {
-    let name: String
-    let target: String?
-    let cacheResult: BazelCacheResult
-    let startingTimestampMicros: Int
-    let endingTimestampMicros: Int
-    let `internal`: Bool
+    public let name: String
+    public let target: String?
+    public let cacheResult: BazelCacheResult
+    public let startingTimestampMicros: Int
+    public let endingTimestampMicros: Int
+    public let `internal`: Bool
 }
 
 extension BazelAction {
